@@ -4,6 +4,10 @@ import os
 from dotenv import load_dotenv
 from supabase import create_client,Client
 import socket
+import time
+from os import listdir
+from os.path import isfile, join
+import threading
 load_dotenv()
 
 load_dotenv()
@@ -27,6 +31,23 @@ def main(page: ft.Page):
     text_password:TextField=TextField(label="Password",text_align=ft.TextAlign.LEFT,password=True)
     button_submit: ElevatedButton=ElevatedButton(text="Login",disabled=True)
     
+    def send_file(e:FilePickerResultEvent):
+        
+        file_info=e.files
+        print(len(file_info))
+        for i in file_info:
+            time.sleep(1)
+            client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+            client.connect((str(local_ip()),8888))
+            with open(i.path,"rb") as file:
+                client.send(i.name.encode())
+                data = file.read(1024)
+                while data:
+                    client.send(data)
+                    data=file.read(1024)
+            client.send(b"<END>")
+            client.close()
+            
     def validate(e:ControlEvent)->None:
         if all([text_username.value,text_password.value]):
             button_submit.disabled=False
@@ -42,10 +63,47 @@ def main(page: ft.Page):
                 page.go("/home")
                 break
     
-                        
+    file_choosen=FilePicker(on_result=send_file)   
+    page.overlay.append(file_choosen)  
     text_username.on_change=validate
     text_password.on_change=validate
     button_submit.on_click=submit
+    lv=ft.ListView(expand=True,spacing=10)
+    page.theme_mode=ft.ThemeMode.LIGHT
+    
+    def load_files():
+        onlyfiles = [f for f in listdir("recv") if isfile(join("recv", f))]
+        for i in onlyfiles:
+            lv.controls.append(ft.Text(f"{i}"))
+        page.update()
+
+            
+    def recv_file():
+        server=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        server.bind((str(local_ip()),8888))
+        while True:
+            server.listen()
+            print("Listening....")
+            client,addr=server.accept()
+
+            file_name=client.recv(1024).decode()
+            print(file_name)
+
+            file=open(f"recv/{file_name}","wb")
+            file_bytes=b""
+            done = False
+
+            while not done:
+                data = client.recv(1024)
+                if file_bytes[-5:]==b"<END>":
+                    done = True
+                else:
+                    file_bytes+=data
+
+            file.write(file_bytes[:-5])
+            lv.controls.append(ft.Text(f"{file_name}"))
+            page.update()
+            file.close()
 
     def route_change(route):
         page.views.clear()
@@ -61,11 +119,17 @@ def main(page: ft.Page):
             )
         )
         if page.route == "/home":
+            update_file=threading.Thread(target=recv_file,daemon=True)
+            update_file.start()
+            load_files()
             page.views.append(
                 ft.View(
                     "/home",
                     [
-                       ft.AppBar(title=ft.Text("Home"), bgcolor="blue",automatically_imply_leading=False),                   ],
+                       ft.AppBar(title=ft.Text("Home"), bgcolor="blue",automatically_imply_leading=False),  
+                       TextField(label="Send to:"),
+            ElevatedButton("Send File",on_click=lambda _:file_choosen.pick_files(allow_multiple=True)),
+            lv],
                 )
             )
         page.update()
