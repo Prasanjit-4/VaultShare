@@ -22,7 +22,7 @@ def main(page: Page):
             
     def recv_file():
         server=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        server.bind(("192.168.146.127",8888))
+        server.bind(("192.168.11.127",8888))
         while True:
             server.listen()
             print("Listening....")
@@ -55,7 +55,7 @@ def main(page: Page):
         for i in file_info:
             time.sleep(1)
             client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-            client.connect(("192.168.146.127",8888))
+            client.connect(("192.168.11.140",8888))
             with open(i.path,"rb") as file:
                 client.send(i.name.encode())
                 data = file.read(1024)

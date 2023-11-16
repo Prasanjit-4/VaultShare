@@ -27,18 +27,21 @@ def local_ip():
 def main(page: ft.Page):
     page.title = "Routes Example"
     
+    text_id:TextField=TextField(label="User ID",text_align=ft.TextAlign.LEFT)
     text_username:TextField=TextField(label="Username",text_align=ft.TextAlign.LEFT)
     text_password:TextField=TextField(label="Password",text_align=ft.TextAlign.LEFT,password=True)
     button_submit: ElevatedButton=ElevatedButton(text="Login",disabled=True)
+    send_to:TextField= TextField(label="Send to: (Enter User ID)",text_align=ft.TextAlign.LEFT)
     
     def send_file(e:FilePickerResultEvent):
-        
+        send_ip=supabase.table("users").select("addr").eq("id",send_to.value).execute().data[0]['addr']
+        print(send_ip)
         file_info=e.files
         print(len(file_info))
         for i in file_info:
             time.sleep(1)
             client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-            client.connect((str(local_ip()),8888))
+            client.connect((send_ip,8888))
             with open(i.path,"rb") as file:
                 client.send(i.name.encode())
                 data = file.read(1024)
@@ -56,17 +59,20 @@ def main(page: ft.Page):
         page.update()
     
     def submit(e:ControlEvent)->None:
-        data=supabase.table('users').select("*").execute()
-        print(len(data.data))
-        for i in data.data:
-            if(i['username']==text_username.value and i['password']==text_password.value):
-                page.go("/home")
-                break
+        data=supabase.table('users').select("id,username,password").eq("id",text_id.value).execute()
+        if(len(data.data)):
+            if(text_password.value==data.data[0]['password']):
+                supabase.table('users').update({"addr":str(local_ip())}).eq("id",text_id.value).execute()
+                page.go('/home')
+            else:
+                print("Invalid Credentials")
+        
     
     file_choosen=FilePicker(on_result=send_file)   
     page.overlay.append(file_choosen)  
     text_username.on_change=validate
     text_password.on_change=validate
+    text_id.on_change=validate
     button_submit.on_click=submit
     lv=ft.ListView(expand=True,spacing=10)
     page.theme_mode=ft.ThemeMode.LIGHT
@@ -109,9 +115,10 @@ def main(page: ft.Page):
         page.views.clear()
         page.views.append(
             ft.View(
-                "/",
+                "/",   
                 [
                     ft.AppBar(title=ft.Text("Vault Share"), bgcolor="blue"),
+                    text_id,
                     text_username,
                     text_password,
                     button_submit
@@ -127,7 +134,7 @@ def main(page: ft.Page):
                     "/home",
                     [
                        ft.AppBar(title=ft.Text("Home"), bgcolor="blue",automatically_imply_leading=False),  
-                       TextField(label="Send to:"),
+                      send_to,
             ElevatedButton("Send File",on_click=lambda _:file_choosen.pick_files(allow_multiple=True)),
             lv],
                 )
