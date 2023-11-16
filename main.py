@@ -30,7 +30,7 @@ def main(page: ft.Page):
     text_id:TextField=TextField(label="User ID",text_align=ft.TextAlign.LEFT)
     text_username:TextField=TextField(label="Username",text_align=ft.TextAlign.LEFT)
     text_password:TextField=TextField(label="Password",text_align=ft.TextAlign.LEFT,password=True)
-    button_submit: ElevatedButton=ElevatedButton(text="Login",disabled=True)
+    button_submit: ElevatedButton=ElevatedButton(text="Login",disabled=True,expand=1, bgcolor="indigo", color="white")
     send_to:TextField= TextField(label="Send to: (Enter User ID)",text_align=ft.TextAlign.LEFT)
     
     def send_file(e:FilePickerResultEvent):
@@ -80,7 +80,16 @@ def main(page: ft.Page):
     def load_files():
         onlyfiles = [f for f in listdir("recv") if isfile(join("recv", f))]
         for i in onlyfiles:
-            lv.controls.append(ft.Text(f"{i}"))
+            lv.controls.append(ft.Card(
+                content=ft.Column(
+                    [
+                        ft.ListTile(
+                            leading=ft.Icon(ft.icons.FILE_OPEN),
+                            title=ft.Text(f"{i}")
+                        )
+                    ]
+                )
+            ))
         page.update()
 
             
@@ -107,7 +116,16 @@ def main(page: ft.Page):
                     file_bytes+=data
 
             file.write(file_bytes[:-5])
-            lv.controls.append(ft.Text(f"{file_name}"))
+            lv.controls.append(ft.Card(
+                content=ft.Column(
+                    [
+                        ft.ListTile(
+                            leading=ft.Icon(ft.icons.FILE_OPEN),
+                            title=ft.Text(f"{file_name}")
+                        )
+                    ]
+                )
+            ))
             page.update()
             file.close()
 
@@ -117,12 +135,16 @@ def main(page: ft.Page):
             ft.View(
                 "/",   
                 [
-                    ft.AppBar(title=ft.Text("Vault Share"), bgcolor="blue"),
+                    
+                    ft.AppBar(title=ft.Text("Vault Share"), bgcolor="indigo",color="white"),
                     text_id,
                     text_username,
                     text_password,
-                    button_submit
-                ]
+                    Row([button_submit])
+                ],
+                padding=40,
+                spacing=20,
+                
             )
         )
         if page.route == "/home":
@@ -133,9 +155,9 @@ def main(page: ft.Page):
                 ft.View(
                     "/home",
                     [
-                       ft.AppBar(title=ft.Text("Home"), bgcolor="blue",automatically_imply_leading=False),  
+                       ft.AppBar(title=ft.Text("Home"), bgcolor="indigo",automatically_imply_leading=False,color="white"),  
                       send_to,
-            ElevatedButton("Send File",on_click=lambda _:file_choosen.pick_files(allow_multiple=True)),
+            Row([ElevatedButton("Send File",on_click=lambda _:file_choosen.pick_files(allow_multiple=True),expand=1)]),
             lv],
                 )
             )
