@@ -8,9 +8,11 @@ import time
 from os import listdir
 from os.path import isfile, join
 import threading
+import subprocess
+import platform
 load_dotenv()
 
-load_dotenv()
+
 url:str=os.environ.get("SUPABASE_URL")
 key:str=os.environ.get("SUPABASE_KEY")
 
@@ -32,6 +34,7 @@ def main(page: ft.Page):
     text_password:TextField=TextField(label="Password",text_align=ft.TextAlign.LEFT,password=True)
     button_submit: ElevatedButton=ElevatedButton(text="Login",disabled=True,expand=1, bgcolor="indigo", color="white")
     send_to:TextField= TextField(label="Send to: (Enter User ID)",text_align=ft.TextAlign.LEFT)
+    
     
     def send_file(e:FilePickerResultEvent):
         send_ip=supabase.table("users").select("addr").eq("id",send_to.value).execute().data[0]['addr']
@@ -74,8 +77,29 @@ def main(page: ft.Page):
     text_password.on_change=validate
     text_id.on_change=validate
     button_submit.on_click=submit
+    
     lv=ft.ListView(expand=True,spacing=10)
     page.theme_mode=ft.ThemeMode.LIGHT
+    
+    def open_dir(e:ControlEvent):
+        path=os.path.join(os.getcwd(),"recv",e.control.title.value).replace('\\','/')
+        file_path=path.replace('\\','/')
+        print(file_path)
+        try:
+        # Determine the platform to use the appropriate command for opening files
+            system_platform = platform.system().lower()
+
+            if system_platform == 'darwin':  # MacOS
+                subprocess.run(['open', file_path], check=True)
+            elif system_platform == 'linux':
+                subprocess.run(['xdg-open',file_path], check=True)
+            elif system_platform == 'windows':
+                os.startfile(file_path)
+            else:
+                print("Unsupported platform for file opening.")
+        except Exception as e:
+            print(f"Error opening file: {e}")
+    
     
     def load_files():
         onlyfiles = [f for f in listdir("recv") if isfile(join("recv", f))]
@@ -85,7 +109,8 @@ def main(page: ft.Page):
                     [
                         ft.ListTile(
                             leading=ft.Icon(ft.icons.FILE_OPEN),
-                            title=ft.Text(f"{i}")
+                            title=ft.Text(f"{i}"),
+                            on_click=open_dir
                         )
                     ]
                 )
